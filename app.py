@@ -32,11 +32,10 @@ le_smoker.fit(['no', 'yes'])
 le_region = LabelEncoder()
 le_region.fit(['northeast', 'northwest', 'southeast', 'southwest'])
 USD_TO_INR = 83.5
-st.title("🏥 Health Insurance Cost Predictor")
+st.markdown("# 🏥 Health Insurance Cost Predictor")
 st.markdown("Enter your details to predict your annual medical insurance costs")
 if not model_loaded:
     st.warning("📌 Using fallback model. Upload the trained model file for accurate predictions.")
-debug_mode = st.sidebar.checkbox("🔧 Debug Mode", value=False)
 st.divider()
 col1, col2 = st.columns(2)
 with col1:
@@ -54,14 +53,9 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         smoker_encoded = le_smoker.transform([smoker.lower()])[0]
         region_encoded = le_region.transform([region.lower()])[0]
         input_data = np.array([[age, sex_encoded, bmi, children, smoker_encoded, region_encoded]])
-        if debug_mode:
-            st.write("**Input Data (raw):**", input_data)
-            st.write("**Input Shape:**", input_data.shape)
         prediction_usd = model.predict(input_data)[0]
         prediction_usd = np.clip(prediction_usd, 1000, 50000)
         prediction_inr = prediction_usd * USD_TO_INR
-        if debug_mode:
-            st.write("**Raw Prediction (USD):**", f"${prediction_usd:,.2f}")
         st.success("### 💰 Prediction Results")
         col_result1, col_result2 = st.columns(2)
         with col_result1:
@@ -97,19 +91,5 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
                 st.write("• Your profile shows standard risk factors")
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
-        if debug_mode:
-            st.exception(e)
     st.divider()
     st.caption("💡 This is an estimate based on statistical models. Actual insurance costs may vary. Consult with insurance professionals for accurate quotes.")
-with st.sidebar:
-    st.header("ℹ️ About")
-    st.write("This tool predicts health insurance costs based on:")
-    st.write("- Age")
-    st.write("- Gender")
-    st.write("- BMI (Body Mass Index)")
-    st.write("- Number of children")
-    st.write("- Smoking status")
-    st.write("- Region")
-    st.divider()
-    st.caption("Model type: Gradient Boosting Regressor")
-    st.caption(f"Exchange rate: 1 USD = ₹{USD_TO_INR}")

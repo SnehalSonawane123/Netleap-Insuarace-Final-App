@@ -9,10 +9,6 @@ from sklearn.preprocessing import LabelEncoder
 import pickle
 from sklearn.ensemble import GradientBoostingRegressor
 import numpy as np
-X = np.random.rand(100, 6)
-y = np.random.rand(100) * 10000
-model = GradientBoostingRegressor()
-model.fit(X, y)
 with open('Insuarance(gbr).pkl', 'wb') as f:
     pickle.dump(model, f)
 le_sex = LabelEncoder()
@@ -339,4 +335,5 @@ elif page == "ℹ️ About":
     - [Health Insurance Basics](https://www.healthcare.gov)
     - [Smoking Cessation Resources](https://www.cdc.gov/tobacco/quit_smoking)
     """)
+
 

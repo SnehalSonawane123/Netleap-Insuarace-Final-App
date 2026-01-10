@@ -14,54 +14,42 @@ import base64
 st.set_page_config(page_title="Health Insurance Cost Predictor", layout="wide", page_icon="🏥")
 sys.modules['sklearn.ensemble.gradient_boosting'] = sys.modules['sklearn.ensemble']
 sys.modules['sklearn.ensemble._gb'] = sys.modules['sklearn.ensemble']
-model_loaded = False
-model = None
 try:
     if os.path.exists('Insuarance(gbr).pkl'):
         with open('Insuarance(gbr).pkl', 'rb') as f:
             model = pickle.load(f)
         model_loaded = True
     else:
-        np.random.seed(42)
-        n_samples = 1000
-        X_train = np.column_stack([
-            np.random.randint(18, 65, n_samples),
-            np.random.randint(0, 2, n_samples),
-            np.random.normal(28, 6, n_samples).clip(15, 50),
-            np.random.randint(0, 6, n_samples),
-            np.random.randint(0, 2, n_samples),
-            np.random.randint(0, 4, n_samples)
-        ])
-        y_train = (1000 + 
-                   X_train[:, 0] * 250 + 
-                   X_train[:, 2] * 400 + 
-                   X_train[:, 3] * 500 + 
-                   X_train[:, 4] * 20000 + 
-                   X_train[:, 5] * 300 + 
-                   np.random.randn(n_samples) * 1000)
-        model = GradientBoostingRegressor(random_state=42, n_estimators=200, max_depth=5, learning_rate=0.1)
-        model.fit(X_train, y_train)
+        from sklearn.preprocessing import LabelEncoder as LE
+        sample_df = pd.DataFrame({
+            'age': [19, 18, 28, 33, 32],
+            'sex': [0, 1, 1, 1, 1],
+            'bmi': [27.9, 33.77, 33.0, 22.705, 28.88],
+            'children': [0, 1, 3, 0, 0],
+            'smoker': [1, 0, 0, 0, 0],
+            'region': [3, 2, 2, 1, 1],
+            'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.86]
+        })
+        X_sample = sample_df[['age', 'sex', 'bmi', 'children', 'smoker', 'region']]
+        y_sample = sample_df['charges']
+        model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=3, random_state=42)
+        model.fit(X_sample, y_sample)
         model_loaded = False
 except Exception as e:
-    np.random.seed(42)
-    n_samples = 1000
-    X_train = np.column_stack([
-        np.random.randint(18, 65, n_samples),
-        np.random.randint(0, 2, n_samples),
-        np.random.normal(28, 6, n_samples).clip(15, 50),
-        np.random.randint(0, 6, n_samples),
-        np.random.randint(0, 2, n_samples),
-        np.random.randint(0, 4, n_samples)
-    ])
-    y_train = (1000 + 
-               X_train[:, 0] * 250 + 
-               X_train[:, 2] * 400 + 
-               X_train[:, 3] * 500 + 
-               X_train[:, 4] * 20000 + 
-               X_train[:, 5] * 300 + 
-               np.random.randn(n_samples) * 1000)
-    model = GradientBoostingRegressor(random_state=42, n_estimators=200, max_depth=5, learning_rate=0.1)
-    model.fit(X_train, y_train)
+    from sklearn.preprocessing import LabelEncoder as LE
+    sample_df = pd.DataFrame({
+        'age': [19, 18, 28, 33, 32],
+        'sex': [0, 1, 1, 1, 1],
+        'bmi': [27.9, 33.77, 33.0, 22.705, 28.88],
+        'children': [0, 1, 3, 0, 0],
+        'smoker': [1, 0, 0, 0, 0],
+        'region': [3, 2, 2, 1, 1],
+        'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.86]
+    })
+    X_sample = sample_df[['age', 'sex', 'bmi', 'children', 'smoker', 'region']]
+    y_sample = sample_df['charges']
+    model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=3, random_state=42)
+    model.fit(X_sample, y_sample)
     model_loaded = False
 np.random.seed(42)
 db_size = 5000
@@ -231,6 +219,7 @@ def create_html_report(user_data, prediction_usd, prediction_inr, database, reco
         .metric-box {{background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center;}}
         .metric-label {{font-size: 0.9em; opacity: 0.9;}}
         .metric-value {{font-size: 1.8em; font-weight: bold; margin: 10px 0;}}
+        .metric-sub {{font-size: 0.85em; opacity: 0.85;}}
         .recommendation {{background-color: #fff; border-left: 4px solid #3498db; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}}
         .priority-CRITICAL {{border-left-color: #e74c3c;}}
         .priority-HIGH {{border-left-color: #e67e22;}}
@@ -259,19 +248,19 @@ def create_html_report(user_data, prediction_usd, prediction_inr, database, reco
         <h2>Cost Prediction</h2>
         <div class="metric-grid">
             <div class="metric-box">
-                <div class="metric-label">Annual Cost (USD)</div>
+                <div class="metric-label">Annual Cost</div>
                 <div class="metric-value">${prediction_usd:,.2f}</div>
-                <div class="metric-label">₹{prediction_inr:,.2f}</div>
+                <div class="metric-sub">₹{prediction_inr:,.2f}</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">Monthly Cost (USD)</div>
+                <div class="metric-label">Monthly Cost</div>
                 <div class="metric-value">${prediction_usd/12:,.2f}</div>
-                <div class="metric-label">₹{prediction_inr/12:,.2f}</div>
+                <div class="metric-sub">₹{prediction_inr/12:,.2f}</div>
             </div>
             <div class="metric-box">
                 <div class="metric-label">vs Average</div>
                 <div class="metric-value">{cost_diff_pct:+.1f}%</div>
-                <div class="metric-label">${cost_diff:+,.2f}</div>
+                <div class="metric-sub">${cost_diff:+,.2f}</div>
             </div>
         </div>
         <h2>Visual Analysis</h2>
@@ -381,19 +370,8 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         smoker_encoded = le_smoker.transform([smoker.lower()])[0]
         region_encoded = le_region.transform([region.lower()])[0]
         input_data = np.array([[age, sex_encoded, bmi, children, smoker_encoded, region_encoded]])
-        if model is None:
-            base_cost = 3000
-            age_cost = (age - 18) * 240
-            sex_cost = sex_encoded * 100
-            bmi_cost = (bmi - 18.5) * 390
-            children_cost = children * 475
-            smoker_cost = smoker_encoded * 23840
-            region_cost = region_encoded * 350
-            prediction_usd = base_cost + age_cost + sex_cost + bmi_cost + children_cost + smoker_cost + region_cost
-            prediction_usd = max(1000, min(63770, prediction_usd))
-        else:
-            prediction_usd = model.predict(input_data)[0]
-            prediction_usd = np.clip(prediction_usd, 1000, 63770)
+        prediction_usd = model.predict(input_data)[0]
+        prediction_usd = max(1121.87, min(63770.43, prediction_usd))
         prediction_inr = prediction_usd * USD_TO_INR
         user_data = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}
         st.success("### 💰 Prediction Results")
@@ -402,14 +380,14 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         cost_diff = prediction_usd - avg_cost
         cost_diff_pct = (cost_diff / avg_cost) * 100
         with col_result1:
-            st.metric("Annual Cost", f"₹{prediction_inr:,.2f}", delta=f"{cost_diff_pct:+.1f}% vs avg")
-            st.caption(f"${prediction_usd:,.2f} USD")
+            st.metric("Annual Cost (USD)", f"${prediction_usd:,.2f}", delta=f"{cost_diff_pct:+.1f}% vs avg")
+            st.caption(f"₹{prediction_inr:,.2f} INR")
         with col_result2:
-            st.metric("Monthly Cost", f"₹{prediction_inr/12:,.2f}")
-            st.caption(f"${prediction_usd/12:,.2f} USD")
+            st.metric("Monthly Cost (USD)", f"${prediction_usd/12:,.2f}")
+            st.caption(f"₹{prediction_inr/12:,.2f} INR")
         with col_result3:
-            st.metric("Database Average", f"₹{avg_cost*USD_TO_INR:,.2f}")
-            st.caption(f"${avg_cost:,.2f} USD")
+            st.metric("Database Average (USD)", f"${avg_cost:,.2f}")
+            st.caption(f"₹{avg_cost*USD_TO_INR:,.2f} INR")
         if smoker == "Yes":
             risk_level = "High"
             risk_color = "🔴"

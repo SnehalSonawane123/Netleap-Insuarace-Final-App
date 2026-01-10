@@ -14,6 +14,8 @@ import base64
 st.set_page_config(page_title="Health Insurance Cost Predictor", layout="wide", page_icon="🏥")
 sys.modules['sklearn.ensemble.gradient_boosting'] = sys.modules['sklearn.ensemble']
 sys.modules['sklearn.ensemble._gb'] = sys.modules['sklearn.ensemble']
+model_loaded = False
+model = None
 try:
     if os.path.exists('Insuarance(gbr).pkl'):
         with open('Insuarance(gbr).pkl', 'rb') as f:
@@ -379,8 +381,19 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         smoker_encoded = le_smoker.transform([smoker.lower()])[0]
         region_encoded = le_region.transform([region.lower()])[0]
         input_data = np.array([[age, sex_encoded, bmi, children, smoker_encoded, region_encoded]])
-        prediction_usd = model.predict(input_data)[0]
-        prediction_usd = np.clip(prediction_usd, 1000, 50000)
+        if model is None:
+            base_cost = 3000
+            age_cost = (age - 18) * 240
+            sex_cost = sex_encoded * 100
+            bmi_cost = (bmi - 18.5) * 390
+            children_cost = children * 475
+            smoker_cost = smoker_encoded * 23840
+            region_cost = region_encoded * 350
+            prediction_usd = base_cost + age_cost + sex_cost + bmi_cost + children_cost + smoker_cost + region_cost
+            prediction_usd = max(1000, min(63770, prediction_usd))
+        else:
+            prediction_usd = model.predict(input_data)[0]
+            prediction_usd = np.clip(prediction_usd, 1000, 63770)
         prediction_inr = prediction_usd * USD_TO_INR
         user_data = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}
         st.success("### 💰 Prediction Results")

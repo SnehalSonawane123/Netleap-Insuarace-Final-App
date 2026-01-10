@@ -91,5 +91,4 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
                 st.write("• Your profile shows standard risk factors")
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
-    st.divider()
-    st.caption("💡 This is an estimate based on statistical models. Actual insurance costs may vary. Consult with insurance professionals for accurate quotes.")
+

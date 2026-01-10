@@ -1,96 +1,76 @@
 import streamlit as st
 import pickle
 import numpy as np
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import GradientBoostingRegressor
 import os
-
-# Load model
+import sys
+sys.modules['sklearn.ensemble.gradient_boosting'] = sys.modules['sklearn.ensemble']
+sys.modules['sklearn.ensemble._gb'] = sys.modules['sklearn.ensemble']
 try:
     if os.path.exists('Insuarance(gbr).pkl'):
         with open('Insuarance(gbr).pkl', 'rb') as f:
             model = pickle.load(f)
         model_loaded = True
     else:
-        raise FileNotFoundError("Model file not found")
+        X = np.random.rand(1000, 6)
+        y = 1000 + (X[:, 0] * 100) + (X[:, 2] * 200) + (X[:, 4] * 15000) + np.random.rand(1000) * 2000
+        model = GradientBoostingRegressor(random_state=42, n_estimators=100, max_depth=4)
+        model.fit(X, y)
+        model_loaded = False
 except Exception as e:
     st.error(f"⚠️ Error loading model: {e}")
-    st.stop()
-
-# Initialize label encoders
+    X = np.random.rand(1000, 6)
+    y = 1000 + (X[:, 0] * 100) + (X[:, 2] * 200) + (X[:, 4] * 15000) + np.random.rand(1000) * 2000
+    model = GradientBoostingRegressor(random_state=42, n_estimators=100, max_depth=4)
+    model.fit(X, y)
+    model_loaded = False
 le_sex = LabelEncoder()
 le_sex.fit(['female', 'male'])
-
 le_smoker = LabelEncoder()
 le_smoker.fit(['no', 'yes'])
-
 le_region = LabelEncoder()
 le_region.fit(['northeast', 'northwest', 'southeast', 'southwest'])
-
 USD_TO_INR = 83.5
-
 st.set_page_config(page_title="Health Insurance Cost Predictor", layout="centered", page_icon="🏥")
-
 st.title("🏥 Health Insurance Cost Predictor")
 st.markdown("Enter your details to predict your annual medical insurance costs")
-
-# Add debug mode toggle
+if not model_loaded:
+    st.warning("📌 Using fallback model. Upload the trained model file for accurate predictions.")
 debug_mode = st.sidebar.checkbox("🔧 Debug Mode", value=False)
-
 st.divider()
-
 col1, col2 = st.columns(2)
-
 with col1:
     age = st.slider("Age", 18, 100, 30)
     bmi = st.slider("BMI", 15.0, 50.0, 25.0, 0.1)
     children = st.slider("Number of Children", 0, 5, 0)
-
 with col2:
     sex = st.selectbox("Gender", ["Male", "Female"])
     smoker = st.selectbox("Smoker", ["No", "Yes"])
     region = st.selectbox("Region", ["Northeast", "Northwest", "Southeast", "Southwest"])
-
 st.divider()
-
 if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=True):
     try:
-        # Encode categorical variables
         sex_encoded = le_sex.transform([sex.lower()])[0]
         smoker_encoded = le_smoker.transform([smoker.lower()])[0]
         region_encoded = le_region.transform([region.lower()])[0]
-        
-        # Create input array in the EXACT order the model was trained on
-        # Common order: age, sex, bmi, children, smoker, region
         input_data = np.array([[age, sex_encoded, bmi, children, smoker_encoded, region_encoded]])
-        
         if debug_mode:
             st.write("**Input Data (raw):**", input_data)
             st.write("**Input Shape:**", input_data.shape)
-        
-        # Make prediction
         prediction_usd = model.predict(input_data)[0]
-        
-        # Clamp prediction to reasonable range (insurance costs typically 1k-50k USD annually)
         prediction_usd = np.clip(prediction_usd, 1000, 50000)
-        
         prediction_inr = prediction_usd * USD_TO_INR
-        
         if debug_mode:
             st.write("**Raw Prediction (USD):**", f"${prediction_usd:,.2f}")
-        
         st.success("### 💰 Prediction Results")
-        
         col_result1, col_result2 = st.columns(2)
-        
         with col_result1:
             st.metric("Annual Cost", f"₹{prediction_inr:,.2f}")
             st.caption(f"${prediction_usd:,.2f} USD")
-        
         with col_result2:
             st.metric("Monthly Cost", f"₹{prediction_inr/12:,.2f}")
             st.caption(f"${prediction_usd/12:,.2f} USD")
-        
-        # Risk assessment
         if smoker == "Yes":
             risk_level = "High"
             risk_color = "🔴"
@@ -100,10 +80,7 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         else:
             risk_level = "Low"
             risk_color = "🟢"
-        
         st.info(f"**Risk Assessment:** {risk_color} {risk_level} Risk")
-        
-        # Show typical cost factors
         with st.expander("📊 Cost Factors Breakdown"):
             factors = []
             if smoker == "Yes":
@@ -114,32 +91,26 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
                 factors.append("• Age over 50 typically increases costs")
             if children > 2:
                 factors.append("• Multiple dependents may affect family plan costs")
-            
             if factors:
                 for factor in factors:
                     st.write(factor)
             else:
                 st.write("• Your profile shows standard risk factors")
-        
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
         if debug_mode:
             st.exception(e)
-    
     st.divider()
     st.caption("💡 This is an estimate based on statistical models. Actual insurance costs may vary. Consult with insurance professionals for accurate quotes.")
-
-# Sidebar information
 with st.sidebar:
     st.header("ℹ️ About")
     st.write("This tool predicts health insurance costs based on:")
     st.write("- Age")
-    st.write("- Gender") 
+    st.write("- Gender")
     st.write("- BMI (Body Mass Index)")
     st.write("- Number of children")
     st.write("- Smoking status")
     st.write("- Region")
-    
     st.divider()
     st.caption("Model type: Gradient Boosting Regressor")
     st.caption(f"Exchange rate: 1 USD = ₹{USD_TO_INR}")

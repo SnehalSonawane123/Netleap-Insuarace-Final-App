@@ -10,7 +10,6 @@ from io import BytesIO
 from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import base64
 st.set_page_config(page_title="Health Insurance Cost Predictor", layout="wide", page_icon="🏥")
 sys.modules['sklearn.ensemble.gradient_boosting'] = sys.modules['sklearn.ensemble']
 sys.modules['sklearn.ensemble._gb'] = sys.modules['sklearn.ensemble']
@@ -20,37 +19,11 @@ try:
             model = pickle.load(f)
         model_loaded = True
     else:
-        from sklearn.preprocessing import LabelEncoder as LE
-        sample_df = pd.DataFrame({
-            'age': [19, 18, 28, 33, 32],
-            'sex': [0, 1, 1, 1, 1],
-            'bmi': [27.9, 33.77, 33.0, 22.705, 28.88],
-            'children': [0, 1, 3, 0, 0],
-            'smoker': [1, 0, 0, 0, 0],
-            'region': [3, 2, 2, 1, 1],
-            'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.86]
-        })
-        X_sample = sample_df[['age', 'sex', 'bmi', 'children', 'smoker', 'region']]
-        y_sample = sample_df['charges']
-        model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=3, random_state=42)
-        model.fit(X_sample, y_sample)
         model_loaded = False
+        model = None
 except Exception as e:
-    from sklearn.preprocessing import LabelEncoder as LE
-    sample_df = pd.DataFrame({
-        'age': [19, 18, 28, 33, 32],
-        'sex': [0, 1, 1, 1, 1],
-        'bmi': [27.9, 33.77, 33.0, 22.705, 28.88],
-        'children': [0, 1, 3, 0, 0],
-        'smoker': [1, 0, 0, 0, 0],
-        'region': [3, 2, 2, 1, 1],
-        'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.86]
-    })
-    X_sample = sample_df[['age', 'sex', 'bmi', 'children', 'smoker', 'region']]
-    y_sample = sample_df['charges']
-    model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=3, random_state=42)
-    model.fit(X_sample, y_sample)
     model_loaded = False
+    model = None
 np.random.seed(42)
 db_size = 5000
 database = pd.DataFrame({
@@ -70,8 +43,21 @@ le_region.fit(['northeast', 'northwest', 'southeast', 'southwest'])
 database['sex_encoded'] = le_sex.transform(database['sex'])
 database['smoker_encoded'] = le_smoker.transform(database['smoker'])
 database['region_encoded'] = le_region.transform(database['region'])
+def calculate_cost(age, sex_enc, bmi, children, smoker_enc, region_enc):
+    base_cost = 3000
+    age_factor = (age - 18) * 240
+    sex_factor = sex_enc * 131.3
+    bmi_factor = max(0, (bmi - 18.5) * 393
+    children_factor = children * 475.5
+    smoker_factor = smoker_enc * 23847.5
+    region_factor = region_enc * 352.9
+    total = base_cost + age_factor + sex_factor + bmi_factor + children_factor + smoker_factor + region_factor
+    return max(1121.87, min(63770.43, total))
 X_db = database[['age', 'sex_encoded', 'bmi', 'children', 'smoker_encoded', 'region_encoded']].values
-database['predicted_cost'] = model.predict(X_db)
+if model is not None:
+    database['predicted_cost'] = model.predict(X_db)
+else:
+    database['predicted_cost'] = [calculate_cost(row[0], row[1], row[2], row[3], row[4], row[5]) for row in X_db]
 USD_TO_INR = 83.5
 def create_comparison_charts(user_data, prediction_usd, database):
     fig = make_subplots(
@@ -370,7 +356,10 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
         smoker_encoded = le_smoker.transform([smoker.lower()])[0]
         region_encoded = le_region.transform([region.lower()])[0]
         input_data = np.array([[age, sex_encoded, bmi, children, smoker_encoded, region_encoded]])
-        prediction_usd = model.predict(input_data)[0]
+        if model is not None:
+            prediction_usd = model.predict(input_data)[0]
+        else:
+            prediction_usd = calculate_cost(age, sex_encoded, bmi, children, smoker_encoded, region_encoded)
         prediction_usd = max(1121.87, min(63770.43, prediction_usd))
         prediction_inr = prediction_usd * USD_TO_INR
         user_data = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}

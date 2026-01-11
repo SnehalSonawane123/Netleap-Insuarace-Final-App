@@ -47,7 +47,7 @@ def calculate_cost(age, sex_enc, bmi, children, smoker_enc, region_enc):
     base_cost = 3000
     age_factor = (age - 18) * 240
     sex_factor = sex_enc * 131.3
-    bmi_factor = max(0, (bmi - 18.5) * 393
+    bmi_factor = max(0, (bmi - 18.5))* 393
     children_factor = children * 475.5
     smoker_factor = smoker_enc * 23847.5
     region_factor = region_enc * 352.9
@@ -441,3 +441,4 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
         st.exception(e)
+

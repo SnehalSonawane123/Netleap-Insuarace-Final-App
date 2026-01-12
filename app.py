@@ -19,7 +19,7 @@ if os.path.exists('Insuarance(gbr).pkl'):
     model_loaded = True
 else:
     model_loaded = False
-     model = None
+    model = None
 except Exception as e:
     model_loaded = False
     model = None
@@ -440,6 +440,7 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
         st.exception(e)
+
 
 
 

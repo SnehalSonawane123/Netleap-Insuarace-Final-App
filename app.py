@@ -13,13 +13,14 @@ from plotly.subplots import make_subplots
 sys.modules['sklearn.ensemble.gradient_boosting'] = sys.modules['sklearn.ensemble']
 sys.modules['sklearn.ensemble._gb'] = sys.modules['sklearn.ensemble']
 st.set_page_config(page_title="Health Insurance Cost Predictor", layout="wide", page_icon="🏥")
-if os.path.exists('Insuarance(gbr).pkl'):
-    with open('Insuarance(gbr).pkl', 'rb') as f:
-        model = pickle.load(f)
-    model_loaded = True
-else:
-    model_loaded = False
-    model = None
+try:
+    if os.path.exists('Insuarance(gbr).pkl'):
+        with open('Insuarance(gbr).pkl', 'rb') as f:
+            model = pickle.load(f)
+        model_loaded = True
+    else:
+        model_loaded = False
+        model = None
 except Exception as e:
     model_loaded = False
     model = None
@@ -440,12 +441,4 @@ if st.button("🔮 Predict Insurance Cost", type="primary", use_container_width=
     except Exception as e:
         st.error(f"❌ Prediction error: {e}")
         st.exception(e)
-
-
-
-
-
-
-
-
 
